@@ -2,3 +2,4 @@ requests
 pandas
 numpy
 matplotlib>=3.8
+scikit-learn
