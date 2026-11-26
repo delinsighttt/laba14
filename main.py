@@ -1,63 +1,81 @@
+import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
-
+print("=== Задание 1: DataFrame с текстами ===")
 data = {
-    "name": ["Анна", "Борис", "Виктор", "Анна", "Дмитрий", "Елена", "Борис", "Жанна", "Захар", "Ирина"],
-    "age": [25, 34, None, 25, 45, 29, 34, None, 150, 31],
-    "city": ["Москва", None, "Казань", "Москва", "Сочи", "Москва", "Казань", "Тверь", "Омск", "Уфа"],
-    "salary": [50000, 60000, 55000, 50000, 70000, None, 60000, 52000, 90000, 58000],
-    "experience": ["3", "5", "2", "3", "10", "7", "5", None, "20", "4"]
+    "text": [
+        "Отличный сервис, всё работает быстро и без сбоев",
+        "Ужасное приложение, постоянно зависает и вылетает!",
+        "Поддержка ответила быстро, проблему решили за час",
+        "Не рекомендую, потратил деньги зря",
+        "Функционал удобный, интерфейс приятный, всё нравится",
+        "Дизайн хороший, но тормозит на старом телефоне",
+        "Полное разочарование, ничего не работает как надо",
+        "Лучшее обновление за год, спасибо разработчикам!",
+        "Всё супер, приложение стало заметно быстрее",
+        "Служба поддержки на высоте, отвечает за пять минут",
+    ]
 }
 df = pd.DataFrame(data)
-print("=== Задание 1: грязный датасет ===")
-print(df)
+print(df.head())
 
 
+print("\n=== Задание 2: ручная разметка ===")
 
-print("\n=== Задание 2: сколько пропусков в каждом столбце ===")
-print(df.isnull().sum())
-
-
-print("\n=== Задание 3: удаляем строки с пропуском имени или возраста ===")
-df = df.dropna(subset=["name", "age"])
-print(f"Осталось строк: {len(df)}")
-print(df)
-
-print("\n=== Задание 4: заполняем пропуски зарплаты средним ===")
-mean_salary = df["salary"].mean()
-print(f"Средняя зарплата: {mean_salary}")
-df["salary"] = df["salary"].fillna(mean_salary)
-print(df)
+labels = [1, 0, 1, 0, 1, 1, 0, 1, 1, 1] 
+df["label"] = labels
+print(df[["text", "label"]].head())
 
 
-print("\n=== Задание 5: удаляем дубликаты ===")
-print(f"Дубликатов найдено: {df.duplicated().sum()}")
-df = df.drop_duplicates()
-print(f"Осталось строк: {len(df)}")
-print(df)
+print("\n=== Задание 3: длина текста ===")
+df["text_length"] = df["text"].str.len()
+print(df[["text", "text_length"]].head())
 
 
-print("\n=== Задание 6: выбросы – возраст больше 100 ===")
-mask = df["age"] > 100
-print("Выбросы:")
-print(df[mask])
-
-median_age = df.loc[~mask, "age"].median()
-print(f"Медиана без выбросов: {median_age}")
-
-df.loc[mask, "age"] = median_age
-print(df)
-
-print("\n=== Задание 7: приводим столбец experience к числу ===")
-df["experience"] = pd.to_numeric(df["experience"], errors="coerce")
-df["experience"] = df["experience"].fillna(df["experience"].mean())
-df["experience"] = df["experience"].astype(int)
-print(df.dtypes)
-print(df)
+print("\n=== Задание 4: количество слов ===")
+df["word_count"] = df["text"].str.split().str.len()
+print(df[["text", "text_length", "word_count"]].head())
 
 
-print("\n=== Задание 8: сохраняем очищенные данные ===")
-df.to_csv("clean_data.csv", index=False)
-print("Файл clean_data.csv сохранён.")
-print(df.info())
+print("\n=== Задание 5: баланс классов ===")
+balance = df["label"].value_counts()
+print(balance)
+
+total = len(df)
+print(f"Позитивных: {int((df['label'] == 1).sum())} из {total} ({(df['label'] == 1).mean() * 100:.1f}%)")
+print(f"Негативных: {int((df['label'] == 0).sum())} из {total} ({(df['label'] == 0).mean() * 100:.1f}%)")
+
+print("\nВывод: Датасет слегка несбалансирован (70% позитива, 30% негатива).")
+print("Это умеренный дисбаланс, приемлемый для учебы. При сильном перекосе (95/5)")
+print("модель могла бы 'читерить', всегда предсказывая позитив.")
+
+
+print("\n=== Задание 6: итоговый датасет ===")
+
+final = df[["text_length", "word_count", "label"]].copy()
+final.to_csv("labeled_dataset.csv", index=False, encoding="utf-8-sig")
+print(final.head(10))
+print("Файл labeled_dataset.csv сохранён.")
+
+
+print("\n=== Задание 7 (бонус): признак 'есть восклицательный знак' ===")
+
+df["has_exclamation"] = df["text"].str.contains("!").astype(int)
+print(df[["text", "has_exclamation"]].head())
+
+
+print("\n=== Задание 8 (бонус): график баланса классов ===")
+os.makedirs("images", exist_ok=True)
+
+balance.plot(kind="bar", color=["#4C72B0", "#C44E52"])
+plt.title("Баланс классов")
+plt.xlabel("Метка (1 - позитив, 0 - негатив)")
+plt.ylabel("Количество отзывов")
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.savefig("images/classes.png", dpi=150)
+plt.show()
+plt.close()
+print("График сохранён в images/classes.png")
