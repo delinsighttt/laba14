@@ -1,135 +1,72 @@
 import os
-import numpy as np
+import json
+import requests
 import pandas as pd
-import matplotlib
-import matplotlib.pyplot as plt
+from datetime import datetime
 
-matplotlib.rcParams["font.family"] = "DejaVu Sans"
-
-os.makedirs("images", exist_ok=True)
-
-print("Строим график 1...")
-days = ["Пн", "Вт", "Ср", "Чт", "Пт"]
-work = [2, 3.5, 7, 5, 9]
-
-plt.plot(days, work, "o-", color="steelblue", label="Сложность задач")
-plt.xlabel("День недели")
-plt.ylabel("Сложность")
-plt.title("Сложность задач по дням")
-
-plt.legend()
-plt.grid(True, alpha=0.3)
-plt.savefig("images/plot1.png", dpi=150)
-plt.show()
-plt.close() 
+print("=== ЗАДАНИЕ 1: Первый GET-запрос ===")
+url = "https://jsonplaceholder.typicode.com/users"
+response = requests.get(url)
+print("Статус-код:", response.status_code)
 
 
-
-
-
-
-
-print("Строим график 2...")
-np.random.seed(42)
-level = np.random.randint(1, 100, 60)
-donates = level * 15 + np.random.normal(0, 200, 60)
-
-plt.scatter(level, donates, alpha=0.6, color="seagreen")
-plt.xlabel("Уровень игрока")
-plt.ylabel("Сумма донатов, руб.")
-plt.title("Зависимость донатов от уровня")
-plt.grid(True, alpha=0.3)
-plt.savefig("images/scatter_donates.png", dpi=150)
-plt.show()
-plt.close()
-
-
-
-
-
-
-
-print("Строим график 3...")
-classes = ["Воин", "Маг", "Стрелок", "Паладин"]
-counts = [14, 9, 11, 6]
-
-plt.bar(classes, counts, color=["#4C72B0", "#DD8452", "#55A868", "#C44E52"])
-plt.xlabel("Класс персонажа")
-plt.ylabel("Количество игроков")
-plt.title("Распределение игроков по классам")
-plt.savefig("images/bar_classes.png", dpi=150)
-plt.show()
-plt.close()
-
-
-
-
-
-
-print("Строим график 4...")
-np.random.seed(7)
-times = np.random.normal(loc=120, scale=25, size=500)
-
-plt.hist(times, bins=30, color="steelblue", edgecolor="black")
-plt.xlabel("Время выполнения, мс")
-plt.ylabel("Количество задач")
-plt.title("Распределение времени выполнения задач")
-plt.savefig("images/hist_times.png", dpi=150)
-plt.show()
-plt.close()
-
-print(f"Статистика времени: Среднее = {times.mean():.1f}, Мин = {times.min():.1f}, Макс = {times.max():.1f}")
-
-
-
-
-
-
-print("Строим график 5...")
-np.random.seed(42)
-x = np.arange(1, 21)
-y = x * 3 + np.random.normal(0, 10, 20)
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-
-axes[0].plot(x, y, "o-")
-axes[0].set_title("Линейный график")
-axes[0].set_xlabel("Время")
-axes[0].set_ylabel("Значение")
-
-axes[1].scatter(x, y, color="crimson")
-axes[1].set_title("Точечная диаграмма")
-axes[1].set_xlabel("Время")
-axes[1].set_ylabel("Значение")
-
-plt.tight_layout()
-plt.savefig("images/subplots.png", dpi=150)
-plt.show()
-plt.close()
-
-
-
-
-
-
-
-print("Строим бонусный график из Pandas...")
-try:
+if response.status_code == 200:
+    data = response.json()
     
-    
-    
-    
-    df = pd.read_csv("dataset.csv")
-    counts_pd = df["klass"].value_counts()
-    
-    plt.bar(counts_pd.index, counts_pd.values, color="slateblue")
-    plt.title("Игроки по классам (из Pandas)")
-    plt.xlabel("Класс")
-    plt.ylabel("Количество")
-    plt.savefig("images/pandas_bar.png", dpi=150)
-    plt.show()
-    plt.close()
-    print("Бонусный график сохранен!")
-except FileNotFoundError:print("Внимание: файл dataset.csv не найден. Бонусное задание пропущено.")
+    print("\n=== ЗАДАНИЕ 2: Разбор ответа ===")
+    print("Всего пользователей:", len(data))
+  
+    for user in data[:3]:
+        print(user["name"], "-", user["email"])
+    print("Город первого пользователя:", data[0]["address"]["city"])
 
-print("\nВсе графики построены и сохранены в папку 'images'!")
+    print("\n=== ЗАДАНИЕ 3: Данные API в DataFrame ===")
+    df = pd.DataFrame(data)
+    
+    df = df[["id", "name", "username", "email", "phone", "website"]]
+    print(df.head())
+
+    print("\n=== ЗАДАНИЕ 4: Сохранение в CSV и JSON ===")
+    os.makedirs("data", exist_ok=True) 
+    
+    df.to_csv("data/users.csv", index=False, encoding="utf-8")
+    with open("data/users.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    print("Файлы сохранены:", os.listdir("data"))
+
+    print("\n=== ЗАДАНИЕ 5: Грязные данные ===")
+    dirty = [dict(u) for u in data] 
+    dirty[0]["email"] = None        
+    dirty.append(dirty[1])          
+    
+    df_dirty = pd.DataFrame(dirty)
+    df_dirty = df_dirty[["id", "name", "email"]]
+    
+    print("Пропуски по колонкам:")
+    print(df_dirty.isnull().sum())
+    print("Найдено дубликатов:", df_dirty.duplicated().sum())
+
+    print("\n=== ЗАДАНИЕ 6: Бэкап с датой в имени ===")
+    def fetch_and_backup(url, folder="data"):
+        """Делает GET-запрос и сохраняет ответ с датой в имени файла."""
+        res = requests.get(url)
+        if res.status_code != 200:
+            print("Запрос не удался, код:", res.status_code)
+            return None
+        
+        json_data = res.json()
+        stamp = datetime.now().strftime("%Y-%m-%d")
+        os.makedirs(folder, exist_ok=True)
+        
+        path = os.path.join(folder, f"users_{stamp}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+            
+        print("Бэкап сохранён:", path)
+        return pd.DataFrame(json_data)
+
+  
+    df_backup = fetch_and_backup(url)
+else:
+    print("Не удалось получить данные. Код ошибки:", response.status_code)
